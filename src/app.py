@@ -26,10 +26,6 @@ app.config.from_object(config['development'])
 SECRET_KEY = 'JWT_SECRET_KEY=dIeocMZ1BzPxMcgmkLLPweME31lpx4XP3bsAXpqgt3SLrpKF2a0X6cdUOYr7joIJQwgcL1ht3GFpijm8qFcm4pHyAjie0rCpWEbqUEyYB4W5p36YjqYLhykwjIctJmcoQwF7R8uL9Z3eC34jlgki9dA57EuzT06E6gamcrHbJSmYykfkDwOE5uEeerYGQqzKBFOw9esDhiC1g0v0gWtTcDEPbbg6XMlxhe4MKgZsTfyb7rvUyLRYITcFykegU2tCZDKY'
 
 def user_has_role(*allowed_roles):
-    """
-    Devuelve True si el usuario autenticado tiene
-    al menos uno de los roles pasados.
-    """
     roles = getattr(request, 'roles', None)
     if roles is None:
         role = getattr(request, 'role', None)
@@ -65,7 +61,7 @@ def token_required(f):
                 [request.role] if request.role else ['unknown']
             )
 
-            request.ci = data['ci']
+            request.mail = data['mail']
 
         except jwt.ExpiredSignatureError:
             return jsonify({
@@ -82,22 +78,19 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-def check_user_is_active(ci, role):
+def check_user_is_active(mail, role):
     conn = connection(role)
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT isActive
-            FROM user
-            WHERE ci = %s
-        """, (ci,))
+            SELECT *
+            FROM usuario
+            WHERE mail = %s
+        """, (mail,))
         row = cursor.fetchone()
 
         if not row:
             return False, "Usuario no encontrado"
-        if not row["isActive"]:
-            return False, "Usuario inactivo"
-
         return True, None
     finally:
         cursor.close()
@@ -151,7 +144,7 @@ def postRegister():
         conn = connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT email FROM usuario WHERE email = %s", (email,))
+        cursor.execute("SELECT mail FROM usuario WHERE mail = %s", (mail,))
         if cursor.fetchone():
             cursor.close()
             return jsonify({
@@ -162,7 +155,7 @@ def postRegister():
         passwordHash = hash_pwd(contrasenia)
 
         cursor.execute(
-            "INSERT INTO usuario (mail, nombre, apellido) VALUES (%s, %s, %s, %s)",
+            "INSERT INTO usuario (mail, nombre, apellido) VALUES (%s, %s, %s)",
             (mail, nombre, apellido)
         )
 
@@ -185,5 +178,96 @@ def postRegister():
         return jsonify({
             'success': False,
             'description': 'Error al registrar el usuario',
+            'error': str(ex)
+        }), 500
+
+@app.route('/login', methods=['POST'])
+def postLogin():
+    try:
+        data = request.get_json()
+        mail = data.get('mail')
+        contrasenia = data.get('contrasenia')
+
+        if not mail or not contrasenia:
+            return jsonify({
+                'success': False,
+                'description': 'Faltan email o contraseña'
+            }), 400
+
+        conn = connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT mail
+            FROM usuario
+            WHERE mail = %s
+        """, (mail,))
+        user_row = cursor.fetchone()
+
+        if not user_row:
+            cursor.close()
+            conn.close()
+            return jsonify({
+                "success": False,
+                "description": "Usuario no encontrado"
+            }), 404
+
+        mail = user_row["mail"]
+
+        cursor.execute("SELECT contrasenia FROM login WHERE mail = %s", (mail,))
+        result = cursor.fetchone()
+
+        if not result:
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'description': 'Credenciales inválidas'}), 401
+
+        stored_hash = result['contrasenia']
+        if isinstance(stored_hash, str):
+            stored_hash = stored_hash.encode()
+
+        if not bcrypt.checkpw(contrasenia.encode(), stored_hash):
+            cursor.close()
+            conn.close()
+            return jsonify({'success': False, 'description': 'Credenciales inválidas'}), 401
+
+        roles = []
+
+        cursor.execute("SELECT rol FROM usuario WHERE mail = %s", (mail,))
+        if cursor.fetchone():
+            roles.append("operador")
+
+        if not roles:
+            roles = ["unknown"]
+
+        prioridad = ['operador']
+        main_role = next((r for r in prioridad if r in roles), roles[0])
+
+        now = datetime.now(timezone.utc)
+        access_payload = {
+            'mail': mail,
+            'role': main_role,
+            'roles': roles,
+            'exp': now + timedelta(minutes=120)
+        }
+
+        access_token = jwt.encode(access_payload, SECRET_KEY, algorithm='HS256')
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'access_token': access_token,
+            'role': main_role,
+            'roles': roles,
+            'description': 'Login correcto'
+        }), 200
+
+    except Exception as ex:
+        print("ERROR EN /login:", ex)
+        return jsonify({
+            'success': False,
+            'description': 'Error en el login',
             'error': str(ex)
         }), 500
