@@ -27,3 +27,21 @@ Faker==33.0.0
 
 # --- Producción ---
 gunicorn==23.0.0
+
+# DEPENDENCIAS 
+
+pyjwt==2.13.0
+
+PyMySQL==1.2.0
+
+Flask==3.1.3 
+blinker==1.9.0 
+click==8.5.0 
+itsdangerous==2.2.0 
+jinja2==3.1.6 
+markupsafe==3.0.3 
+werkzeug==3.1.8
+
+python-dotenv==1.2.3
+
+dbutils==3.2.0
