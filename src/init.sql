@@ -12,7 +12,7 @@ CREATE TABLE usuario (
 CREATE TABLE login (
     mail VARCHAR(50) PRIMARY KEY,
     contrasenia VARCHAR(200) NOT NULL,
-    FOREIGN KEY (mail) REFERENCES user(mail)
+    FOREIGN KEY (mail) REFERENCES usuario(mail)
 );
 
 CREATE TABLE sensor (
@@ -29,7 +29,7 @@ CREATE TABLE sensor_logs (
     lectura DECIMAL(10, 2) NOT NULL,
     log_fecha DATETIME NOT NULL,
     FOREIGN KEY (sensor_id) REFERENCES sensor(id)
-)
+);
 
 INSERT INTO sensor (activo, roto, version, ultimo_repuesto) VALUES
 (TRUE, FALSE, 1.11, "2026-08-2OT13:00:00"),
@@ -38,3 +38,14 @@ INSERT INTO sensor (activo, roto, version, ultimo_repuesto) VALUES
 (TRUE, FALSE, 1.11, "2026-08-2OT13:00:00"),
 (FALSE, FALSE, 1.12, "2026-08-25T13:00:00"),
 (FALSE, FALSE, 1.12, "2026-08-25T13:00:00");
+
+CREATE USER 'unknown_user'@'%' IDENTIFIED BY 'Unknown19976543!';
+CREATE USER 'usuario_user'@'%' IDENTIFIED BY 'Usuario19976543!';
+
+# GRANTS UNKNOWN
+GRANT INSERT, SELECT ON tfu2.login TO 'unknown_user'@'%';
+GRANT INSERT, SELECT ON tfu2.usuario TO 'unknown_user'@'%';
+
+# GRANTS USUARIO
+GRANT SELECT, UPDATE, INSERT ON tfu2.sensor TO 'usuario_user'@'%';
+GRANT SELECT, UPDATE, INSERT ON tfu2.sensor_logs TO 'usuario_user'@'%';
