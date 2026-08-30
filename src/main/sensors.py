@@ -26,8 +26,8 @@ def sensorReadings():
     """
     Simula la lectura de los sensores activos del sistema. Cada uno devuelve un número entre 0.0 y 1 cada 30 segundos.
     """
-    # sensors = loadSensors()
-    sensors = [0, 1, 2, 3]
+    sensors = loadSensors()
+    # sensors = [0, 1, 2, 3]
     time.sleep(30)
     for sensor in sensors:
         now = datetime.now()

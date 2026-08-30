@@ -1,1 +1,10 @@
-.env
+*.env
+*.venv
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+mysql_data/
+*.sql~

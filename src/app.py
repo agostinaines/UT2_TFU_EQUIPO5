@@ -16,7 +16,6 @@ app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.config['JSONIFY_MIMETYPE'] = "application/json; charset=utf-8"
 
-
 @app.after_request
 def set_charset(response):
     response.headers["Content-Type"] = "application/json; charset=utf-8"
@@ -96,16 +95,16 @@ def check_user_is_active(mail, role):
         cursor.close()
         conn.close()
 
-# Registro de usuario
 @app.route('/register', methods=['POST'])
 def postRegister():
+    conn = None
+    cursor = None
+
     try:
         data = request.get_json()
 
         nombre = data.get('nombre')
-        nombre = nombre.replace(' ', '')
         apellido = data.get('apellido')
-        apellido = apellido.replace(' ', '')
         mail = data.get('mail')
         contrasenia = data.get('contrasenia')
         confirmarContrasenia = data.get('confirmarContrasenia')
@@ -115,6 +114,10 @@ def postRegister():
                 'success': False,
                 'description': 'Faltan datos obligatorios'
             }), 400
+
+        nombre = nombre.replace(' ', '')
+        apellido = apellido.replace(' ', '')
+
         if contrasenia != confirmarContrasenia:
             return jsonify({
                 'success': False,
@@ -126,8 +129,6 @@ def postRegister():
                 'success': False,
                 'description': 'La contraseña es muy corta (mínimo 9 caracteres)'
             }), 400
-        conn = connection()
-        cursor = conn.cursor()
 
         if len(nombre) < 3 or not nombre.isalpha():
             return jsonify({
@@ -144,9 +145,12 @@ def postRegister():
         conn = connection()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT mail FROM usuario WHERE mail = %s", (mail,))
+        cursor.execute(
+            "SELECT mail FROM usuario WHERE mail = %s",
+            (mail,)
+        )
+
         if cursor.fetchone():
-            cursor.close()
             return jsonify({
                 'success': False,
                 'description': 'El correo electrónico ya está en uso'
@@ -165,7 +169,6 @@ def postRegister():
         )
 
         conn.commit()
-        cursor.close()
 
         return jsonify({
             'success': True,
@@ -173,13 +176,23 @@ def postRegister():
         }), 201
 
     except Exception as ex:
-        conn.rollback()
+        if conn is not None:
+            conn.rollback()
+
         print("ERROR EN /register:", ex)
+
         return jsonify({
             'success': False,
             'description': 'Error al registrar el usuario',
             'error': str(ex)
         }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if conn is not None:
+            conn.close()
 
 @app.route('/login', methods=['POST'])
 def postLogin():

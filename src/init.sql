@@ -20,7 +20,7 @@ CREATE TABLE sensor (
     activo BOOLEAN NOT NULL,
     roto BOOLEAN DEFAULT FALSE,
     version DECIMAL(10, 2) NOT NULL,
-    ultimo_repuesto DATETIME NOT NULL
+    ultimo_repuesto DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE sensor_logs (
@@ -31,13 +31,13 @@ CREATE TABLE sensor_logs (
     FOREIGN KEY (sensor_id) REFERENCES sensor(id)
 );
 
-INSERT INTO sensor (activo, roto, version, ultimo_repuesto) VALUES
-(TRUE, FALSE, 1.11, "2026-08-2OT13:00:00"),
-(TRUE, FALSE, 1.11, "2026-08-2OT13:00:00"),
-(TRUE, FALSE, 1.11, "2026-08-2OT13:00:00"),
-(TRUE, FALSE, 1.11, "2026-08-2OT13:00:00"),
-(FALSE, FALSE, 1.12, "2026-08-25T13:00:00"),
-(FALSE, FALSE, 1.12, "2026-08-25T13:00:00");
+INSERT INTO sensor (activo, roto, version) VALUES
+(TRUE, FALSE, 1.11),
+(TRUE, FALSE, 1.11),
+(TRUE, FALSE, 1.11),
+(TRUE, FALSE, 1.11),
+(FALSE, FALSE, 1.12),
+(FALSE, FALSE, 1.12);
 
 CREATE USER 'unknown_user'@'%' IDENTIFIED BY 'Unknown19976543!';
 CREATE USER 'usuario_user'@'%' IDENTIFIED BY 'Usuario19976543!';
