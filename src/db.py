@@ -1,8 +1,8 @@
 import time
 import pymysql
-from config import config
+from configdb import configdb
 
-db_config = config['development']
+db_config = configdb['development']
 
 def connection(role="unknown", retries=10, delay=3):
     creds = db_config.MYSQL_USERS.get(role)
@@ -20,8 +20,6 @@ def connection(role="unknown", retries=10, delay=3):
                 charset="utf8mb4",
                 cursorclass=pymysql.cursors.DictCursor,
                 init_command="SET time_zone='-03:00'"
-
-
             )
             print(f"Conectado a MySQL como {creds['user']} (rol app: {role})")
             return conn
