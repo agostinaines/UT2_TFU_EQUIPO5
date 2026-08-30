@@ -16,7 +16,7 @@ def loadSensors():
     """
     with configuration.get_connection(True) as connection:
         with connection.cursor() as cursor:
-            sql = "SELECT s.id FROM sensor s WHERE s.activo = TRUE AND s.roto = FALSE"
+            sql = "SELECT s.id FROM sensor s WHERE s.activo = TRUE AND s.roto = FALSE;"
             cursor.execute(sql)
             sensors = cursor.fetchall()
 

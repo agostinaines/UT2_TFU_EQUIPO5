@@ -39,15 +39,16 @@ INSERT INTO sensor (activo, roto, version) VALUES
 (FALSE, FALSE, 1.12),
 (FALSE, FALSE, 1.12);
 
-SELECT * FROM sensor_logs;
+SELECT *
+FROM sensor_logs;
+
+DROP USER IF EXISTS 'unknown_user'@'%';
+DROP USER IF EXISTS 'usuario_user'@'%';
 
 CREATE USER 'unknown_user'@'%' IDENTIFIED BY 'Unknown19976543!';
 CREATE USER 'usuario_user'@'%' IDENTIFIED BY 'Usuario19976543!';
 
-# GRANTS UNKNOWN
-GRANT INSERT, SELECT ON tfu2.login TO 'unknown_user'@'%';
-GRANT INSERT, SELECT ON tfu2.usuario TO 'unknown_user'@'%';
+GRANT ALL PRIVILEGES ON tfu2.* TO 'unknown_user'@'%';
+GRANT ALL PRIVILEGES ON tfu2.* TO 'usuario_user'@'%';
 
-# GRANTS USUARIO
-GRANT SELECT, UPDATE, INSERT ON tfu2.sensor TO 'usuario_user'@'%';
-GRANT SELECT, UPDATE, INSERT ON tfu2.sensor_logs TO 'usuario_user'@'%';
+FLUSH PRIVILEGES;

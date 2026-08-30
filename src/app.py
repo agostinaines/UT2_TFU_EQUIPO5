@@ -283,3 +283,26 @@ def postLogin():
             'description': 'Error en el login',
             'error': str(ex)
         }), 500
+
+@app.route('/sensor/log', methods=['GET'])
+def getSensorLogs():
+    try:
+        conn = connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM sensor_logs")
+        results = cursor.fetchall()
+        cursor.close()
+
+        sensor = []
+        for row in results:
+            sensor.append({
+                'id': row['id'],
+                'sensor_id': row['sensor_id'],
+                'lectura': row['lectura'],
+                'fecha_hora': row['fecha_hora'].strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+        return jsonify({'sensor': sensor, 'success': True}), 200
+
+    except Exception as ex:
+        return jsonify({'success': False, 'description': 'Error', 'error': str(ex)}), 500
