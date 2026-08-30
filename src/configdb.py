@@ -5,8 +5,8 @@ from dbutils.pooled_db import PooledDB
 
 class DataBaseConfig:
     DEBUG = True
-    MYSQL_HOST = os.getenv("MYSQL_HOST", "ADADB")
-    MYSQL_DB = os.getenv("MYSQL_DB", "ADATFUDOS")
+    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_DB = os.getenv("MYSQL_DB", "tfu2")
     MYSQL_USERS = {
         "unknown": {
             "user": os.getenv("MYSQL_UNKNOWN_USER", "unknown_user"),
@@ -24,9 +24,9 @@ config = {
 
 credentials = config['development']
 
-POOL = PooledDB(
+POOL_UNKNOWN = PooledDB(
     creator=pymysql,
-    maxconnections=6,
+    maxconnections=3,
     mincached=2,
     host=credentials.MYSQL_HOST,
     user=credentials.MYSQL_USERS['unknown']['user'],
@@ -36,5 +36,18 @@ POOL = PooledDB(
     cursorclass=pymysql.cursors.DictCursor
 )
 
-def get_connection():
-    return POOL.connection()
+POOL_USER = PooledDB(
+    creator=pymysql,
+    maxconnections=3,
+    mincached=2,
+    host=credentials.MYSQL_HOST,
+    user=credentials.MYSQL_USERS['usuario']['user'],
+    password=credentials.MYSQL_USERS['usuario']['password'],
+    database=credentials.MYSQL_DB,
+    charset='utf8mb4',
+    cursorclass=pymysql.cursors.DictCursor
+)
+
+def get_connection(is_logged_in: bool):
+    pool = POOL_USER if is_logged_in else POOL_UNKNOWN
+    return pool.connection()

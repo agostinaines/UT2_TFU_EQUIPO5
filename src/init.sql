@@ -27,7 +27,7 @@ CREATE TABLE sensor_logs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     sensor_id INT NOT NULL,
     lectura DECIMAL(10, 2) NOT NULL,
-    log_fecha DATETIME NOT NULL,
+    log_fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sensor_id) REFERENCES sensor(id)
 );
 
@@ -38,6 +38,8 @@ INSERT INTO sensor (activo, roto, version) VALUES
 (TRUE, FALSE, 1.11),
 (FALSE, FALSE, 1.12),
 (FALSE, FALSE, 1.12);
+
+SELECT * FROM sensor_logs;
 
 CREATE USER 'unknown_user'@'%' IDENTIFIED BY 'Unknown19976543!';
 CREATE USER 'usuario_user'@'%' IDENTIFIED BY 'Usuario19976543!';
