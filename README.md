@@ -11,6 +11,7 @@ Este repositorio contiene una API que simula un sistema de administración de se
 '/newSensor' -- CREAR UN NUEVO SENSOR, POR DEFAULT DESACTIVADO
 '/toggle/<id>' -- ACTIVAR O DESACTIVAR UN SENSOR
 '/repairSensor/<id>' -- REPARAR SENSOR DAÑADO
+'/updateSensor/<id>' -- EDITAR UN SENSOR
 ```
 Los métodos automáticos que generan las lecturas de los sensores también determinan cuándo estos se dañan. Al momento de dañarse dejan de generar registros.
 

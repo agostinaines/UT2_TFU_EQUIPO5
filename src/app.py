@@ -418,6 +418,33 @@ def repair_sensor(id):
             'description': 'Error',
             'error': str(ex)
         }), 500
+
+@app.route('/updateSensor/<id>', methods=['PATCH'])
+def update_sensor(id):
+    try:
+        body = request.get_json()
+        version = body.get('version')
+
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+
+        cursor.execute("UPDATE sensor SET version = %s WHERE id = %s", (version, id,))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            'success': True,
+            'description': 'Sensor actualizado con éxito'
+        }), 200
+
+    except Exception as ex:
+        return jsonify({
+            'success': False,
+            'description': 'Error',
+            'error': str(ex)
+        }), 500
     
 def loadSensors():
     """
