@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import jwt
 from encrypt import hash_pwd
-from configdb import config
+from configdb import configuration
 from db import connection
 from functools import wraps
 
@@ -20,16 +20,16 @@ def set_charset(response):
     response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
 
-app.config.from_object(config['development'])
+app.config.from_object(configuration['development'])
 SECRET_KEY = 'JWT_SECRET_KEY=dIeocMZ1BzPxMcgmkLLPweME31lpx4XP3bsAXpqgt3SLrpKF2a0X6cdUOYr7joIJQwgcL1ht3GFpijm8qFcm4pHyAjie0rCpWEbqUEyYB4W5p36YjqYLhykwjIctJmcoQwF7R8uL9Z3eC34jlgki9dA57EuzT06E6gamcrHbJSmYykfkDwOE5uEeerYGQqzKBFOw9esDhiC1g0v0gWtTcDEPbbg6XMlxhe4MKgZsTfyb7rvUyLRYITcFykegU2tCZDKY'
 
+# NOT USED
 def user_has_role(*allowed_roles):
     roles = getattr(request, 'roles', None)
     if roles is None:
         role = getattr(request, 'role', None)
         roles = [role] if role else []
     return any(r in roles for r in allowed_roles)
-
 
 def token_required(f):
     @wraps(f)
@@ -50,9 +50,7 @@ def token_required(f):
         try:
             data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
 
-
             request.role = data.get('role', 'unknown')
-
 
             request.roles = data.get(
                 'roles',
@@ -93,6 +91,10 @@ def check_user_is_active(mail, role):
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/')
+def welcome():
+    return "¡Bienvenido!"
 
 @app.route('/register', methods=['POST'])
 def postRegister():
@@ -282,4 +284,34 @@ def postLogin():
             'success': False,
             'description': 'Error en el login',
             'error': str(ex)
+<<<<<<< Updated upstream
         }), 500
+=======
+        }), 500
+
+@app.route('/sensor/log', methods=['GET'])
+def getSensorLogs():
+    try:
+        conn = connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM sensor_logs")
+        results = cursor.fetchall()
+
+        sensor = []
+        for row in results:
+            sensor.append({
+                'id': row['id'],
+                'sensor_id': row['sensor_id'],
+                'lectura': row['lectura'],
+                'fecha_hora': row['fecha_hora'].strftime("%Y-%m-%d %H:%M:%S")
+            })
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({'sensor': sensor, 'success': True}), 200
+
+    except Exception as ex:
+        return jsonify({'success': False, 'description': 'Error', 'error': str(ex)}), 500
+    
+>>>>>>> Stashed changes

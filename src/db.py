@@ -1,8 +1,8 @@
 import time
 import pymysql
-from configdb import config
+from configdb import configuration
 
-db_config = config['development']
+db_config = configuration['development']
 
 def connection(role="unknown", retries=10, delay=3):
     creds = db_config.MYSQL_USERS.get(role)

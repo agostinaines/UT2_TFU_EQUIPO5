@@ -1,5 +1,4 @@
 import os
-
 import pymysql
 from dbutils.pooled_db import PooledDB
 
@@ -18,11 +17,11 @@ class DataBaseConfig:
         },
     }
 
-config = {
+configuration = {
     "development": DataBaseConfig
 }
 
-credentials = config['development']
+credentials = configuration['development']
 
 POOL_UNKNOWN = PooledDB(
     creator=pymysql,
@@ -48,6 +47,9 @@ POOL_USER = PooledDB(
     cursorclass=pymysql.cursors.DictCursor
 )
 
-def get_connection(is_logged_in: bool):
+def connection(is_logged_in: bool):
+    """
+    Devuelve una conexión dependiendo del rol del usuario.
+    """
     pool = POOL_USER if is_logged_in else POOL_UNKNOWN
     return pool.connection()

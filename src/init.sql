@@ -17,7 +17,7 @@ CREATE TABLE login (
 
 CREATE TABLE sensor (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    activo BOOLEAN NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT FALSE,
     roto BOOLEAN DEFAULT FALSE,
     version DECIMAL(10, 2) NOT NULL,
     ultimo_repuesto DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -32,12 +32,12 @@ CREATE TABLE sensor_logs (
 );
 
 INSERT INTO sensor (activo, roto, version) VALUES
-(TRUE, FALSE, 1.11),
-(TRUE, FALSE, 1.11),
-(TRUE, FALSE, 1.11),
-(TRUE, FALSE, 1.11),
-(FALSE, FALSE, 1.12),
-(FALSE, FALSE, 1.12);
+(1.11),
+(1.11),
+(1.11),
+(1.11),
+(1.12),
+(1.12);
 
 SELECT * FROM sensor_logs;
 
