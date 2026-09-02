@@ -1,0 +1,235 @@
+{
+  "info": {
+    "_postman_id": "5c5ea9a7-55be-4ea4-b9bc-696466d1de4f",
+    "name": "ADA UT2 TFU Equipo 5",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "47097644"
+  },
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"mail\": \"santiagoaguerre.info@gmail.com\",\r\n    \"nombre\": \"santiago\",\r\n    \"apellido\": \"aguerre\",\r\n    \"contrasenia\": \"123456789\",\r\n    \"confirmarContrasenia\": \"123456789\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/register",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "LogIn",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"mail\": \"santiagoaguerre.info@gmail.com\",\r\n    \"contrasenia\": \"123456789\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/login",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "All Logs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/allLogs",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "allLogs"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sensor Logs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/sensor/:id/logs",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "sensor",
+            ":id",
+            "logs"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "All Sensors",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/allSensors",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "allSensors"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Sensor",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"version\": \"1.13\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5000/newSensor",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "newSensor"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Toggle Sensor",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/toggle/:id",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "toggle",
+            ":id"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "6"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Repair Sensor",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5000/repairSensor/:id",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5000",
+          "path": [
+            "repairSensor",
+            ":id"
+          ],
+          "variable": [
+            {
+              "key": "id",
+              "value": "6"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

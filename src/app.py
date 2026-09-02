@@ -1,112 +1,45 @@
+import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from datetime import datetime, timedelta, timezone
+from configdb import credentials, get_connection
 import bcrypt
 import jwt
 from encrypt import hash_pwd
-from configdb import config
-from db import connection
-from functools import wraps
+from datetime import datetime, timedelta, timezone
+import time as tmodule
+import random
+import threading
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}})
 
 app.config['JSON_AS_ASCII'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
-app.config['JSONIFY_MIMETYPE'] = "application/json; charset=utf-8"
+app.config.from_object(credentials)
 
-@app.after_request
-def set_charset(response):
-    response.headers["Content-Type"] = "application/json; charset=utf-8"
-    return response
+@app.route('/')
+def welcome():
+    return "¡Bienvenido!"
 
-app.config.from_object(config['development'])
-SECRET_KEY = 'JWT_SECRET_KEY=dIeocMZ1BzPxMcgmkLLPweME31lpx4XP3bsAXpqgt3SLrpKF2a0X6cdUOYr7joIJQwgcL1ht3GFpijm8qFcm4pHyAjie0rCpWEbqUEyYB4W5p36YjqYLhykwjIctJmcoQwF7R8uL9Z3eC34jlgki9dA57EuzT06E6gamcrHbJSmYykfkDwOE5uEeerYGQqzKBFOw9esDhiC1g0v0gWtTcDEPbbg6XMlxhe4MKgZsTfyb7rvUyLRYITcFykegU2tCZDKY'
+def user_has_role():
+    role = getattr(request, 'role', None)
+    if role == 'usuario':
+        return True
 
-def user_has_role(*allowed_roles):
-    roles = getattr(request, 'roles', None)
-    if roles is None:
-        role = getattr(request, 'role', None)
-        roles = [role] if role else []
-    return any(r in roles for r in allowed_roles)
-
-
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-
-        if not token:
-            return jsonify({
-                'success': False,
-                'description': 'Token requerido'
-            }), 401
-
-        try:
-            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
-
-
-            request.role = data.get('role', 'unknown')
-
-
-            request.roles = data.get(
-                'roles',
-                [request.role] if request.role else ['unknown']
-            )
-
-            request.mail = data['mail']
-
-        except jwt.ExpiredSignatureError:
-            return jsonify({
-                'success': False,
-                'description': 'El token ha expirado'
-            }), 401
-
-        except jwt.InvalidTokenError:
-            return jsonify({
-                'success': False,
-                'description': 'Token inválido'
-            }), 401
-
-        return f(*args, **kwargs)
-    return decorated
-
-def check_user_is_active(mail, role):
-    conn = connection(role)
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            SELECT *
-            FROM usuario
-            WHERE mail = %s
-        """, (mail,))
-        row = cursor.fetchone()
-
-        if not row:
-            return False, "Usuario no encontrado"
-        return True, None
-    finally:
-        cursor.close()
-        conn.close()
+    return False
 
 @app.route('/register', methods=['POST'])
 def postRegister():
-    conn = None
-    cursor = None
-
     try:
-        data = request.get_json()
+        body = request.get_json()
 
-        nombre = data.get('nombre')
-        apellido = data.get('apellido')
-        mail = data.get('mail')
-        contrasenia = data.get('contrasenia')
-        confirmarContrasenia = data.get('confirmarContrasenia')
+        nombre = body.get('nombre')
+        apellido = body.get('apellido')
+        mail = body.get('mail')
+        contrasenia = body.get('contrasenia')
+        confirmarContrasenia = body.get('confirmarContrasenia')
 
         if not all([nombre, apellido, mail, contrasenia, confirmarContrasenia]):
             return jsonify({
@@ -126,23 +59,23 @@ def postRegister():
         if len(contrasenia) <= 8:
             return jsonify({
                 'success': False,
-                'description': 'La contraseña es muy corta (mínimo 9 caracteres)'
+                'description': 'La contraseña debe ser de un mínimo de 9 caracteres'
             }), 400
 
         if len(nombre) < 3 or not nombre.isalpha():
             return jsonify({
                 'success': False,
-                'description': 'Formato de nombre invalido'
+                'description': 'Formato de nombre inválido'
             }), 400
 
         if len(apellido) < 3 or not apellido.isalpha():
             return jsonify({
                 'success': False,
-                'description': 'Formato de apellido invalido'
+                'description': 'Formato de apellido inválido'
             }), 400
 
-        conn = connection()
-        cursor = conn.cursor()
+        connection = get_connection(user_has_role())
+        cursor = connection.cursor()
 
         cursor.execute(
             "SELECT mail FROM usuario WHERE mail = %s",
@@ -167,7 +100,7 @@ def postRegister():
             (mail, passwordHash)
         )
 
-        conn.commit()
+        connection.commit()
 
         return jsonify({
             'success': True,
@@ -175,10 +108,8 @@ def postRegister():
         }), 201
 
     except Exception as ex:
-        if conn is not None:
-            conn.rollback()
-
-        print("ERROR EN /register:", ex)
+        if connection is not None:
+            connection.rollback()
 
         return jsonify({
             'success': False,
@@ -189,16 +120,15 @@ def postRegister():
     finally:
         if cursor is not None:
             cursor.close()
-
-        if conn is not None:
-            conn.close()
+        if connection is not None:
+            connection.close()
 
 @app.route('/login', methods=['POST'])
 def postLogin():
     try:
-        data = request.get_json()
-        mail = data.get('mail')
-        contrasenia = data.get('contrasenia')
+        body = request.get_json()
+        mail = body.get('mail')
+        contrasenia = body.get('contrasenia')
 
         if not mail or not contrasenia:
             return jsonify({
@@ -206,32 +136,27 @@ def postLogin():
                 'description': 'Faltan email o contraseña'
             }), 400
 
-        conn = connection()
-        cursor = conn.cursor()
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
 
-        cursor.execute("""
-            SELECT mail
-            FROM usuario
-            WHERE mail = %s
-        """, (mail,))
+        cursor.execute("SELECT mail FROM usuario WHERE mail = %s", (mail,))
         user_row = cursor.fetchone()
 
         if not user_row:
             cursor.close()
-            conn.close()
+            connection.close()
             return jsonify({
                 "success": False,
                 "description": "Usuario no encontrado"
             }), 404
 
         mail = user_row["mail"]
-
         cursor.execute("SELECT contrasenia FROM login WHERE mail = %s", (mail,))
         result = cursor.fetchone()
 
         if not result:
             cursor.close()
-            conn.close()
+            connection.close()
             return jsonify({'success': False, 'description': 'Credenciales inválidas'}), 401
 
         stored_hash = result['contrasenia']
@@ -240,7 +165,7 @@ def postLogin():
 
         if not bcrypt.checkpw(contrasenia.encode(), stored_hash):
             cursor.close()
-            conn.close()
+            connection.close()
             return jsonify({'success': False, 'description': 'Credenciales inválidas'}), 401
 
         roles = []
@@ -252,13 +177,9 @@ def postLogin():
         if not roles:
             roles = ["unknown"]
 
-        prioridad = ['operador']
-        main_role = next((r for r in prioridad if r in roles), roles[0])
-
         now = datetime.now(timezone.utc)
         access_payload = {
             'mail': mail,
-            'role': main_role,
             'roles': roles,
             'exp': now + timedelta(minutes=120)
         }
@@ -266,12 +187,11 @@ def postLogin():
         access_token = jwt.encode(access_payload, SECRET_KEY, algorithm='HS256')
 
         cursor.close()
-        conn.close()
+        connection.close()
 
         return jsonify({
             'success': True,
             'access_token': access_token,
-            'role': main_role,
             'roles': roles,
             'description': 'Login correcto'
         }), 200
@@ -284,25 +204,273 @@ def postLogin():
             'error': str(ex)
         }), 500
 
-@app.route('/sensor/log', methods=['GET'])
-def getSensorLogs():
+@app.route('/allSensors', methods=['GET'])
+def get_all_sensors():
     try:
-        conn = connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM sensor_logs")
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+        cursor.execute("SELECT id, activo, roto FROM sensor")
         results = cursor.fetchall()
-        cursor.close()
 
-        sensor = []
+        sensors = []
         for row in results:
-            sensor.append({
+            sensors.append({
                 'id': row['id'],
-                'sensor_id': row['sensor_id'],
-                'lectura': row['lectura'],
-                'fecha_hora': row['fecha_hora'].strftime("%Y-%m-%d %H:%M:%S")
+                'activo': row['activo'],
+                'roto': row['roto']
             })
 
-        return jsonify({'sensor': sensor, 'success': True}), 200
+        return jsonify({
+            'success': True,
+            'sensors': sensors
+        }), 200
+    except Exception as ex:
+        return jsonify({
+            'success': False,
+            'description': 'Error',
+            'error': str(ex)
+        }), 500
+
+@app.route('/allLogs', methods=['GET'])
+def get_all_sensors_logs():
+    """
+    Consigue todos los registros de todos los sensores.
+    """
+    try:
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM sensor_logs")
+        results = cursor.fetchall()
+
+        logs = []
+        for row in results:
+            logs.append({
+                'id': row['id'],
+                'sensor_id': row['sensor_id'],
+                'lectura': row['lectura']
+            })
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            'logs': logs, 
+            'success': True
+        }), 200
 
     except Exception as ex:
-        return jsonify({'success': False, 'description': 'Error', 'error': str(ex)}), 500
+        return jsonify({
+            'success': False, 
+            'description': 'Error', 
+            'error': str(ex)
+        }), 500
+
+@app.route('/sensor/<id>/logs', methods=['GET'])
+def get_sensor_logs(id):
+    """
+    Consigue todos los registros de un sensor en específico.
+    """
+    try:
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM sensor_logs sL WHERE sL.sensor_id = %s", id)
+        results = cursor.fetchall()
+
+        logs = []
+        for row in results:
+            logs.append({
+                'id': row['id'],
+                'lectura': row['lectura']
+            })
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            'logs': logs, 
+            'success': True
+        }), 200
+
+    except Exception as ex:
+        return jsonify({
+            'success': False, 
+            'description': 'Error', 
+            'error': str(ex)
+        }), 500
+
+@app.route('/newSensor', methods=['POST'])
+def new_sensor():
+    """
+    Inserta un nuevo sensor.
+    """
+    try:
+        body = request.get_json()
+        version = body.get('version')
+        if not version:
+            return jsonify({
+                'success': False,
+                'description': 'Faltan datos obligatorios'
+            }), 400
+
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+        cursor.execute("INSERT INTO sensor (version) VALUES (%s);", version)
+        connection.commit()
+
+        return jsonify({
+            'success': True, 
+            'description': 'Nuevo sensor registrado'
+        }), 201
+
+    except Exception as ex:
+        if connection is not None:
+            connection.rollback()
+        
+            return jsonify({
+                'success': False,
+                'description': 'Error',
+                'error': str(ex)
+            }), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if connection is not None:
+            connection.close()
+
+@app.route('/toggle/<id>', methods=['PATCH'])
+def toggle_sensor(id):
+    """
+    Activa o desactiva un sensor.
+    """
+    try:
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT activo FROM sensor WHERE id = %s",
+            (id,)
+        )
+
+        sensor = cursor.fetchone()
+
+        if sensor is None:
+            cursor.close()
+            connection.close()
+            return jsonify({
+                'success': False,
+                'description': f'No existe el sensor {id}'
+            })
+
+        isActive = sensor['activo']
+
+        if isActive:
+            cursor.execute(
+                "UPDATE sensor SET activo = FALSE WHERE id = %s",
+                (id,)
+            )
+            description = 'Sensor apagado'
+        else:
+            cursor.execute(
+                "UPDATE sensor SET activo = TRUE WHERE id = %s",
+                (id,)
+            )
+            description = 'Sensor prendido'
+
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            'success': True,
+            'description': description
+        }), 200
+    except Exception as ex:
+        return jsonify({
+            'success': False,
+            'description': 'Error',
+            'error': str(ex)
+        }), 500
+
+@app.route('/repairSensor/<id>', methods=['PATCH'])
+def repair_sensor(id):
+    """
+    Simulamos el tiempo que lleva reparar un sensor dañado.
+    """
+    try:
+        tmodule.sleep(30)
+        connection = get_connection(user_has_role)
+        cursor = connection.cursor()
+        
+        cursor.execute("UPDATE sensor SET roto = FALSE WHERE id = %s", (id,))
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        return jsonify({
+            'success': True,
+            'description': f'Sensor {id} reparado con éxito'
+        }), 200
+    except Exception as ex:
+        return jsonify({
+            'success': True,
+            'description': 'Error',
+            'error': str(ex)
+        }), 500
+    
+def loadSensors():
+    """
+    Consulta los sensores guardados en la base de datos y los devuelve.
+    """
+    with get_connection(True) as connection:
+        with connection.cursor() as cursor:
+            sql = "SELECT s.id FROM sensor s WHERE s.activo = TRUE AND s.roto = FALSE;"
+            cursor.execute(sql)
+            sensors = cursor.fetchall()
+
+            sensorsFormatted = []
+            for sensor in sensors:
+                sensorsFormatted.append(sensor['id'])
+
+    return sensorsFormatted
+
+def sensorReadings():
+    """
+    Simula la lectura de los sensores activos del sistema. Cada uno devuelve un número entre 0.0 y 1 cada 30 segundos.
+    Si se detecta una lectura igual a 1 el sensor es considerado dañado y se imprime una alerta en la terminal.
+    """
+    while True:
+        sensors = loadSensors()
+        
+        print(" ")
+        for sensor in sensors:
+            now = datetime.now()
+            nowFormatted = now.strftime("%Y-%m-%d %H:%M:%S")
+
+            reading = random.random()
+
+            with get_connection(True) as connection:
+                with connection.cursor() as cursor:
+                    sql = "INSERT INTO sensor_logs (sensor_id, lectura) VALUES (%s, %s)"
+                    cursor.execute(sql, (sensor, reading,))
+                connection.commit()
+
+            print(f"-SENSOR: {sensor}. -LECTURA: {reading}. -TIEMPO: {nowFormatted}.", flush=True)
+
+            if reading >= 0.99:
+                with get_connection(True) as connection:
+                    with connection.cursor() as cursor:
+                        sql = "UPDATE sensor SET roto = TRUE, activo = FALSE WHERE id = %s"
+                        cursor.execute(sql, (sensor,))
+
+                        print(f"SENSOR {sensor} ESTÁ DAÑADO. ENVIAR TICKET DE REPARACIÓN.", flush=True)
+                    connection.commit()          
+
+        tmodule.sleep(10)
+
+def start_background_tasks():
+    thread = threading.Thread(target=sensorReadings, daemon=True)
+    thread.start()
+
+start_background_tasks()

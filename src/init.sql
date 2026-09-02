@@ -17,7 +17,7 @@ CREATE TABLE login (
 
 CREATE TABLE sensor (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    activo BOOLEAN NOT NULL,
+    activo BOOLEAN NOT NULL DEFAULT FALSE,
     roto BOOLEAN DEFAULT FALSE,
     version DECIMAL(10, 2) NOT NULL,
     ultimo_repuesto DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -31,16 +31,13 @@ CREATE TABLE sensor_logs (
     FOREIGN KEY (sensor_id) REFERENCES sensor(id)
 );
 
-INSERT INTO sensor (activo, roto, version) VALUES
-(TRUE, FALSE, 1.11),
-(TRUE, FALSE, 1.11),
-(TRUE, FALSE, 1.11),
-(TRUE, FALSE, 1.11),
-(FALSE, FALSE, 1.12),
-(FALSE, FALSE, 1.12);
-
-SELECT *
-FROM sensor_logs;
+INSERT INTO sensor (activo, version) VALUES
+(TRUE, 1.11),
+(TRUE, 1.11),
+(TRUE, 1.11),
+(TRUE, 1.11),
+(TRUE, 1.12),
+(TRUE, 1.12);
 
 DROP USER IF EXISTS 'unknown_user'@'%';
 DROP USER IF EXISTS 'usuario_user'@'%';
@@ -52,3 +49,11 @@ GRANT ALL PRIVILEGES ON tfu2.* TO 'unknown_user'@'%';
 GRANT ALL PRIVILEGES ON tfu2.* TO 'usuario_user'@'%';
 
 FLUSH PRIVILEGES;
+
+SELECT s.id
+FROM sensor s
+WHERE s.activo = TRUE AND s.roto = FALSE;
+
+UPDATE sensor s
+SET s.roto = TRUE AND s.activo = FALSE
+WHERE id = 6;
