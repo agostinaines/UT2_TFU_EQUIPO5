@@ -284,9 +284,6 @@ def postLogin():
             'success': False,
             'description': 'Error en el login',
             'error': str(ex)
-<<<<<<< Updated upstream
-        }), 500
-=======
         }), 500
 
 @app.route('/sensor/log', methods=['GET'])
@@ -314,4 +311,3 @@ def getSensorLogs():
     except Exception as ex:
         return jsonify({'success': False, 'description': 'Error', 'error': str(ex)}), 500
     
->>>>>>> Stashed changes
